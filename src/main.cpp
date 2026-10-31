@@ -40,6 +40,9 @@ namespace {
         bool noGlow = false;
         bool noParticles = false;
         bool noShaders = false;
+        bool noDecoration = false;
+        size_t removed = 0;
+        size_t hidden = 0;
     } g_level;
 
     // The level's own LDM values, so we don't overwrite the player's choice.
@@ -58,6 +61,7 @@ namespace {
         g_level.noGlow = on && setting("no-glow");
         g_level.noParticles = on && setting("no-particles");
         g_level.noShaders = on && setting("no-shaders");
+        g_level.noDecoration = on && setting("no-decoration");
 
         if (on && setting("low-detail") && level) {
             g_ldmLevel = level;
@@ -69,6 +73,9 @@ namespace {
     }
 
     void endLevelOptimizations() {
+        if (g_level.removed || g_level.hidden) {
+            log::info("Decoration: {} objects not loaded, {} hidden", g_level.removed, g_level.hidden);
+        }
         g_level = {};
         if (g_ldmLevel) {
             g_ldmLevel->m_lowDetailMode = g_ldmOriginal;
@@ -163,6 +170,17 @@ namespace {
     }
 }
 
+namespace {
+bool isPureDecoration(GameObject* object) {
+    if (object->m_objectType != GameObjectType::Decoration) return false;
+    if (object->m_isTrigger) return false;
+    // Plain and animated decoration only. Effect objects (start positions,
+    // triggers, counters) and enhanced objects (particles...) are left alone.
+    return object->m_classType == GameObjectClassType::Game
+        || object->m_classType == GameObjectClassType::Animated;
+}
+}
+
 class $modify(OptimizerMenuLayer, MenuLayer) {
     bool init() {
         if (!MenuLayer::init()) return false;
@@ -210,6 +228,22 @@ class $modify(PlayLayer) {
         }
         if (isEnabled()) applyPriorities();
         return true;
+    }
+
+    // Every object of the level passes through here while it loads.
+    void addObject(GameObject* object) {
+        if (object && levelOpt(&LevelOptimizations::noDecoration) && isPureDecoration(object)) {
+            if (object->m_groupCount == 0 && !object->m_hasGroupParent) {
+                // No group IDs: no trigger can ever move, toggle or reference it,
+                // so not loading it can't change gameplay. Saves CPU and GPU.
+                ++g_level.removed;
+                return;
+            }
+            // Has groups: keep it (it may be a rotation/follow center), just hide it.
+            object->m_isHide = true;
+            ++g_level.hidden;
+        }
+        PlayLayer::addObject(object);
     }
 
     void onQuit() {
