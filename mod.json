@@ -3,11 +3,11 @@
 	"gd": {
 		"win": "2.2081"
 	},
-	"version": "v2.0.0",
+	"version": "v2.1.0",
 	"id": "xanii.gd_optimizer",
 	"name": "GD Optimizer",
 	"developer": "Xanii",
-	"description": "Lowers the priority of background programs while you play",
+	"description": "Lowers background programs and strips heavy effects so demanding levels run smoother",
 	"repository": "https://github.com/LXanii/GD-Optimizer",
 	"settings": {
 		"enabled": {
@@ -32,6 +32,30 @@
 			"type": "bool",
 			"name": "Restore on level exit",
 			"description": "Put every program back to its original priority when you leave the level.",
+			"default": true
+		},
+		"low-detail": {
+			"type": "bool",
+			"name": "Force Low Detail",
+			"description": "Turn on <cy>Low Detail Mode</c> in every level (hides the decoration the creator marked as high detail). Your own LDM choice for the level is restored when you leave.",
+			"default": true
+		},
+		"no-glow": {
+			"type": "bool",
+			"name": "Remove object glow",
+			"description": "Don't create the glow sprite of blocks. Big boost in decoration-heavy levels.",
+			"default": true
+		},
+		"no-particles": {
+			"type": "bool",
+			"name": "Remove level particles",
+			"description": "Disable particle objects placed in the level.",
+			"default": true
+		},
+		"no-shaders": {
+			"type": "bool",
+			"name": "Remove shader effects",
+			"description": "Ignore shader triggers (blur, glitch, shockwave, lens...). These redraw the whole screen and cost a lot of FPS. <cr>Changes how some levels look.</c>",
 			"default": true
 		}
 	}

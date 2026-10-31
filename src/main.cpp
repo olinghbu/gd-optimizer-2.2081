@@ -5,6 +5,9 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/PlayLayer.hpp>
+#include <Geode/modify/GameObject.hpp>
+#include <Geode/modify/ParticleGameObject.hpp>
+#include <Geode/modify/GJBaseGameLayer.hpp>
 
 #include <Windows.h>
 #include <TlHelp32.h>
@@ -23,6 +26,55 @@ namespace {
 
     bool isEnabled() {
         return Mod::get()->getSettingValue<bool>("enabled");
+    }
+
+    bool setting(std::string_view key) {
+        return Mod::get()->getSettingValue<bool>(key);
+    }
+
+    // Visual optimizations active for the level currently being played.
+    // Read once when the level opens so objects are treated consistently
+    // for the whole session (e.g. particles claimed vs. never claimed).
+    struct LevelOptimizations {
+        bool active = false;
+        bool noGlow = false;
+        bool noParticles = false;
+        bool noShaders = false;
+    } g_level;
+
+    // The level's own LDM values, so we don't overwrite the player's choice.
+    GJGameLevel* g_ldmLevel = nullptr;
+    bool g_ldmOriginal = false;
+    bool g_ldmToggledOriginal = false;
+
+    bool levelOpt(bool LevelOptimizations::* flag) {
+        // Never touch objects in the editor.
+        return g_level.active && g_level.*flag && !LevelEditorLayer::get();
+    }
+
+    void beginLevelOptimizations(GJGameLevel* level) {
+        bool on = isEnabled();
+        g_level.active = on;
+        g_level.noGlow = on && setting("no-glow");
+        g_level.noParticles = on && setting("no-particles");
+        g_level.noShaders = on && setting("no-shaders");
+
+        if (on && setting("low-detail") && level) {
+            g_ldmLevel = level;
+            g_ldmOriginal = level->m_lowDetailMode;
+            g_ldmToggledOriginal = level->m_lowDetailModeToggled;
+            level->m_lowDetailMode = true;
+            level->m_lowDetailModeToggled = true;
+        }
+    }
+
+    void endLevelOptimizations() {
+        g_level = {};
+        if (g_ldmLevel) {
+            g_ldmLevel->m_lowDetailMode = g_ldmOriginal;
+            g_ldmLevel->m_lowDetailModeToggled = g_ldmToggledOriginal;
+            g_ldmLevel = nullptr;
+        }
     }
 
     std::vector<std::wstring> getTargetNames() {
@@ -114,6 +166,7 @@ namespace {
 class $modify(OptimizerMenuLayer, MenuLayer) {
     bool init() {
         if (!MenuLayer::init()) return false;
+        endLevelOptimizations(); // safety net if a level was left without onQuit
 
         auto menu = this->getChildByID("bottom-menu");
         if (!menu) return true;
@@ -149,7 +202,12 @@ class $modify(OptimizerMenuLayer, MenuLayer) {
 
 class $modify(PlayLayer) {
     bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
-        if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
+        // Must run before the original: objects (and their glow) are created during init.
+        beginLevelOptimizations(level);
+        if (!PlayLayer::init(level, useReplay, dontCreateObjects)) {
+            endLevelOptimizations();
+            return false;
+        }
         if (isEnabled()) applyPriorities();
         return true;
     }
@@ -157,6 +215,38 @@ class $modify(PlayLayer) {
     void onQuit() {
         if (Mod::get()->getSettingValue<bool>("restore-on-exit")) restorePriorities();
         PlayLayer::onQuit();
+        endLevelOptimizations();
+    }
+};
+
+// Glow: an object without a glow sprite is a normal case for the game
+// (many objects have none), so skipping its creation is safe.
+class $modify(GameObject) {
+    void createGlow(gd::string frame) {
+        if (levelOpt(&LevelOptimizations::noGlow)) return;
+        GameObject::createGlow(frame);
+    }
+};
+
+// Particles: particle objects only claim a particle system while on screen.
+// Never claiming one makes them behave like they are always off screen.
+class $modify(ParticleGameObject) {
+    void claimParticle() {
+        if (levelOpt(&LevelOptimizations::noParticles)) return;
+        ParticleGameObject::claimParticle();
+    }
+
+    void unclaimParticle() {
+        if (levelOpt(&LevelOptimizations::noParticles)) return;
+        ParticleGameObject::unclaimParticle();
+    }
+};
+
+// Shaders: ignoring shader triggers keeps the full-screen shader pass idle.
+class $modify(GJBaseGameLayer) {
+    void triggerShaderCommand(ShaderGameObject* object) {
+        if (levelOpt(&LevelOptimizations::noShaders)) return;
+        GJBaseGameLayer::triggerShaderCommand(object);
     }
 };
 
