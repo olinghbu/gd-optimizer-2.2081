@@ -6,6 +6,9 @@ on:
     branches:
       - "**"
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Windows
@@ -21,3 +24,12 @@ jobs:
         with:
           name: GD Optimizer (Geode v5, GD 2.2081)
           path: ${{ steps.build.outputs.build-output }}
+
+      - name: Publish .geode as a release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: GD Optimizer (Geode v5, GD 2.2081)
+          files: ${{ steps.build.outputs.build-output }}/*.geode
+          make_latest: true
