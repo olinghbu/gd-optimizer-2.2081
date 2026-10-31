@@ -3,7 +3,7 @@
 	"gd": {
 		"win": "2.2081"
 	},
-	"version": "v2.2.0",
+	"version": "v2.2.0-beta.2",
 	"id": "xanii.gd_optimizer",
 	"name": "GD Optimizer",
 	"developer": "Xanii",
@@ -55,14 +55,14 @@
 		"no-shaders": {
 			"type": "bool",
 			"name": "Remove shader effects",
-			"description": "Ignore shader triggers (blur, glitch, shockwave, lens...). These redraw the whole screen and cost a lot of FPS. <cr>Changes how some levels look.</c>",
-			"default": true
+			"description": "Ignore shader triggers (blur, glitch, shockwave, lens...). These redraw the whole screen and cost a lot of FPS. <cr>Changes how some levels look.</c> Off by default.",
+			"default": false
 		},
-		"no-decoration": {
+		"skip-visual-triggers": {
 			"type": "bool",
-			"name": "Remove decoration",
-			"description": "Don't load decoration objects that triggers can't touch, and hide the rest. Only blocks, spikes, orbs, pads and portals stay visible. <cy>Biggest FPS boost in levels with huge object counts.</c> Gameplay is not affected.",
-			"default": true
+			"name": "Skip pulse & shake triggers",
+			"description": "Ignore <cy>Pulse</c> and <cy>Shake</c> triggers, which only change how the level looks and can be very heavy on big groups. Every other trigger works normally. <cr>Off by default.</c>",
+			"default": false
 		}
 	}
 }
