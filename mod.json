@@ -1,0 +1,38 @@
+{
+	"geode": "5.9.0",
+	"gd": {
+		"win": "2.2081"
+	},
+	"version": "v2.0.0",
+	"id": "xanii.gd_optimizer",
+	"name": "GD Optimizer",
+	"developer": "Xanii",
+	"description": "Lowers the priority of background programs while you play",
+	"repository": "https://github.com/LXanii/GD-Optimizer",
+	"settings": {
+		"enabled": {
+			"type": "bool",
+			"name": "Enabled",
+			"description": "Lower the priority of the listed programs while you are inside a level.",
+			"default": true
+		},
+		"processes": {
+			"type": "string",
+			"name": "Programs",
+			"description": "Comma-separated list of executables to lower while playing.",
+			"default": "Discord.exe, steamwebhelper.exe, firefox.exe, chrome.exe, msedge.exe, opera.exe"
+		},
+		"boost-gd": {
+			"type": "bool",
+			"name": "Boost Geometry Dash",
+			"description": "Also raise Geometry Dash to <cy>High</c> priority while inside a level.",
+			"default": true
+		},
+		"restore-on-exit": {
+			"type": "bool",
+			"name": "Restore on level exit",
+			"description": "Put every program back to its original priority when you leave the level.",
+			"default": true
+		}
+	}
+}
